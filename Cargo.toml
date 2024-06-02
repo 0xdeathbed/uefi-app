@@ -8,4 +8,4 @@ members = ["disk_image"]
 
 [dependencies]
 log = "0.4.21"
-uefi = { version = "0.28.0", features = ["panic_handler", "logger", "alloc", "global_allocator"] }
+uefi = { version = "0.28.0", features = [ "panic_handler", "logger", "alloc", "global_allocator"] }
