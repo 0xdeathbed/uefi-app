@@ -1,0 +1,10 @@
+[package]
+name = "uefi-app"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["disk_image"]
+
+[dependencies]
+uefi = "0.28.0"
