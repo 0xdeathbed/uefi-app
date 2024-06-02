@@ -1,17 +1,14 @@
 #![no_std] // disable linking standard library
 #![no_main] // disable entry function based on crt0
 
-use core::{fmt::Write, panic::PanicInfo};
-use uefi::{
-    entry,
-    table::{Boot, SystemTable},
-    Handle, Status,
-};
+use core::fmt::Write;
+use log::info;
+use uefi::prelude::*;
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
+// #[panic_handler]
+// fn panic(_info: &PanicInfo) -> ! {
+//     loop {}
+// }
 
 /*
 https://uefi.org/specs/UEFI/2.10/04_EFI_System_Table.html
@@ -41,9 +38,15 @@ A pointer to the EFI System Table.
 
 #[entry]
 fn efi_main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
+    uefi::helpers::init(&mut system_table).unwrap();
+
     let stdout = system_table.stdout();
     stdout.clear().unwrap();
     writeln!(stdout, "Hello World!").unwrap();
+
+    let rev = system_table.uefi_revision();
+    info!("UEFI {}.{}", rev.major(), rev.minor());
+    // system_table.boot_services().stall(10_000_000); // Stall for 10 seconds
 
     loop {}
 }
