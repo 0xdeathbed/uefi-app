@@ -8,7 +8,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use core::{alloc::Layout, fmt::Write};
 use log::info;
-use uefi::{prelude::*, table::cfg};
+use uefi::{prelude::*, proto::console::gop::GraphicsOutput, table::cfg};
 
 /*
 https://uefi.org/specs/UEFI/2.10/04_EFI_System_Table.html
@@ -46,6 +46,19 @@ fn efi_main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
         .map(|e| e.address);
 
     writeln!(stdout, "rsdp addr: {:?}", rsdp_addr).unwrap();
+    let bt = sys_table.boot_services();
+    let gop_handle = bt.get_handle_for_protocol::<GraphicsOutput>().unwrap();
+    let mut gop = bt
+        .open_protocol_exclusive::<GraphicsOutput>(gop_handle)
+        .unwrap();
+
+    writeln!(stdout, "current gop mode: {:?}", gop.current_mode_info()).unwrap();
+    writeln!(
+        stdout,
+        "framebuffer at: {:#p}",
+        gop.frame_buffer().as_mut_ptr()
+    )
+    .unwrap();
 
     loop {}
 }
