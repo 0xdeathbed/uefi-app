@@ -10,8 +10,16 @@ use core::{alloc::Layout, fmt::Write};
 use log::info;
 use uefi::{
     prelude::*,
-    proto::{console::gop::GraphicsOutput, loaded_image::LoadedImage},
-    table::{boot::MemoryType, cfg},
+    proto::{
+        console::gop::GraphicsOutput,
+        device_path::text::{AllowShortcuts, DevicePathToText, DisplayOnly},
+        loaded_image::LoadedImage,
+    },
+    table::{
+        boot::{MemoryType, SearchType},
+        cfg,
+    },
+    Identify, Result,
 };
 
 /*
@@ -34,6 +42,7 @@ fn efi_main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     let rev = sys_table.uefi_revision();
     info!("UEFI {}.{}", rev.major(), rev.minor());
+    print_image_path(sys_table.boot_services()).unwrap();
 
     // Using the allocator
     let mut v = Vec::new();
@@ -78,10 +87,35 @@ fn efi_main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // let mmap_storage = bt.memory_map(&mut buffer).unwrap();
 
     uefi::allocator::exit_boot_services();
-    let (sys_table, mem_map) =
+    let (_sys_table, _mem_map) =
         uefi::helpers::system_table().exit_boot_services(MemoryType::LOADER_DATA);
 
     loop {}
+}
+
+fn print_image_path(bt: &BootServices) -> Result {
+    let loaded_img = bt.open_protocol_exclusive::<LoadedImage>(bt.image_handle())?;
+
+    let device_path_to_text_handle = *bt
+        .locate_handle_buffer(SearchType::ByProtocol(&DevicePathToText::GUID))?
+        .first()
+        .expect("DevicePathToText is missing");
+
+    let device_path_to_text =
+        bt.open_protocol_exclusive::<DevicePathToText>(device_path_to_text_handle)?;
+
+    let image_device_path = loaded_img.file_path().expect("File path is not set");
+
+    let image_device_path_text = device_path_to_text.convert_device_path_to_text(
+        bt,
+        image_device_path,
+        DisplayOnly(true),
+        AllowShortcuts(false),
+    )?;
+
+    info!("Image path: {}", &*image_device_path_text);
+
+    Ok(())
 }
 
 /// This function is called when an allocation fails,
